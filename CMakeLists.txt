@@ -9,8 +9,8 @@ find_package(
    sensor_msgs
    geometry_msgs
    trajectory_msgs
-   message_generation
    message_runtime
+   poppy_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -20,7 +20,7 @@ find_package(
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-catkin_python_setup()
+# catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -54,11 +54,11 @@ catkin_python_setup()
 # )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  ExecuteTorsoTrajectory.srv
-  SetTorsoCompliant.srv
-)
+#  add_service_files(
+#    FILES
+#    Service1.srv
+#    Service2.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -68,13 +68,13 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
-  geometry_msgs
-  sensor_msgs
-  trajectory_msgs
-)
+# generate_messages(
+#  DEPENDENCIES
+#  std_msgs  # Or other packages containing msgs
+#  geometry_msgs
+#  sensor_msgs
+#  trajectory_msgs
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##

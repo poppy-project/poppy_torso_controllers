@@ -7,7 +7,7 @@ import rospy
 
 from poppy.creatures import PoppyTorso
 
-from poppy_torso_controllers.srv import ExecuteTorsoTrajectory, SetTorsoCompliant, ExecuteTorsoTrajectoryResponse, SetTorsoCompliantResponse
+from poppy_msgs.srv import ExecuteTrajectory, SetCompliant, ExecuteTrajectoryResponse, SetCompliantResponse
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 
@@ -53,23 +53,23 @@ class TorsoControllers(object):
             self.torso.compliant = False
 
             ########################## Setting up services
-            self.srv_left_arm_execute = rospy.Service('left_arm/execute', ExecuteTorsoTrajectory, self._cb_execute)
-            self.srv_right_arm_execute = rospy.Service('right_arm/execute', ExecuteTorsoTrajectory, self._cb_execute)
+            self.srv_left_arm_execute = rospy.Service('left_arm/execute', ExecuteTrajectory, self._cb_execute)
+            self.srv_right_arm_execute = rospy.Service('right_arm/execute', ExecuteTrajectory, self._cb_execute)
 
             self.srv_robot_execute = rospy.Service('full_robot/execute',
-                                                   ExecuteTorsoTrajectory,
+                                                   ExecuteTrajectory,
                                                    self._cb_execute)
 
             self.srv_left_arm_set_compliant = rospy.Service('left_arm/set_compliant',
-                                                            SetTorsoCompliant,
+                                                            SetCompliant,
                                                             lambda req: self._cb_set_compliant(req, self.torso.l_arm))
 
             self.srv_right_arm_set_compliant = rospy.Service('right_arm/set_compliant',
-                                                             SetTorsoCompliant,
+                                                             SetCompliant,
                                                              lambda req: self._cb_set_compliant(req, self.torso.r_arm))
 
             self.srv_robot_set_compliant = rospy.Service('full_robot/set_compliant',
-                                                         SetTorsoCompliant,
+                                                         SetCompliant,
                                                          lambda req: self._cb_set_compliant(req, self.torso.motors))
 
             rospy.loginfo("{} controllers are up!".format(self.robot_name))
@@ -106,10 +106,10 @@ class TorsoControllers(object):
 
     def _cb_execute(self, request):
         # TODO Action server
-        thread = Thread(target=self.execute, args=[request.torso_trajectory])
+        thread = Thread(target=self.execute, args=[request.trajectory])
         thread.daemon = True
         thread.start()
-        return ExecuteTorsoTrajectoryResponse()
+        return ExecuteTrajectoryResponse()
 
     def execute(self, trajectory):
         with self.robot_lock:
@@ -137,7 +137,7 @@ class TorsoControllers(object):
         with self.robot_lock:
             for m in arm:
                 m.compliant = request.compliant
-        return SetTorsoCompliantResponse()
+        return SetCompliantResponse()
 
 
 if __name__ == '__main__':
