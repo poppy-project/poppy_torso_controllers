@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="robot" default="poppy_torso"/>
+    <group ns="$(arg robot)">    
+        <node pkg="poppy_torso_controllers" name="poppy_torso_controllers" type="controllers.py" output="screen"/>
+    </group>
+</launch>
