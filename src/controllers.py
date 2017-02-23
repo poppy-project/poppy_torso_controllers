@@ -42,10 +42,10 @@ class TorsoControllers(object):
         self.torso = None
         self.robot_lock = RLock()
 
-    def run(self, dummy=False):
+    def run(self, simulated=None):
         rospy.loginfo("Controller is connecting to {}...".format(self.robot_name))
         try:
-            self.torso = PoppyTorso(use_http=True, simulator='poppy-simu' if dummy else None)
+            self.torso = PoppyTorso(use_http=True, simulator=simulated)
         except IOError as e:
             rospy.logerr("{} failed to init: {}".format(self.robot_name, e))
             return None
@@ -142,4 +142,7 @@ class TorsoControllers(object):
 
 if __name__ == '__main__':
     rospy.init_node("poppy_torso_controllers")
-    TorsoControllers(rospy.get_namespace().strip('/')).run()
+    simulated = rospy.get_param("simulated", None)
+    if simulated == "none":
+        simulated = None
+    TorsoControllers(rospy.get_namespace().strip('/')).run(simulated=simulated)
