@@ -82,8 +82,9 @@ class TorsoControllers(object):
                 self.publish_js(self.torso.motors, self.js_pub_full)
                 self.publish_rate.sleep()
         finally:
-            self.torso.compliant = True
-            self.torso.close()
+            if self.torso is not None:
+                self.torso.compliant = True
+                self.torso.close()
 
     @staticmethod
     def publish_eef(eef_pose, publisher):
