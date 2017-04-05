@@ -44,8 +44,9 @@ class TorsoControllers(object):
 
     def run(self, simulator=None):
         rospy.loginfo("Controller is connecting to {}...".format(self.robot_name))
+        port = rospy.get_param('vrep/port', 19997)
         try:
-            self.torso = PoppyTorso(use_http=True, simulator=simulator, scene="keep-existing", port=19997)
+            self.torso = PoppyTorso(use_http=True, simulator=simulator, scene="keep-existing", port=port)
         except IOError as e:
             rospy.logerr("{} failed to init: {}".format(self.robot_name, e))
             return None
