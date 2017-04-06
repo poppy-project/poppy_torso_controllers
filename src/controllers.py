@@ -6,8 +6,7 @@ import json
 import rospy
 
 from poppy.creatures import PoppyTorso
-
-from poppy_msgs.srv import ExecuteTrajectory, SetCompliant, ExecuteTrajectoryResponse, SetCompliantResponse
+from poppy_msgs.srv import ExecuteTrajectory, SetCompliant, ExecuteTrajectoryResponse, SetCompliantResponse, ReachTarget, ReachTargetResponse
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 
@@ -31,9 +30,8 @@ class TorsoControllers(object):
         self.js_pub_full = rospy.Publisher('joint_state', JointState, queue_size=1)
 
         # Services
-        self.srv_left_arm_execute = None
-        self.srv_right_arm_execute = None
-        self.srv_robot_execute = None
+        self.srv_execute = None
+        self.srv_reach = None
         self.srv_left_arm_set_compliant = None
         self.srv_right_arm_set_compliant = None
         self.srv_robot_set_compliant = None
@@ -54,12 +52,8 @@ class TorsoControllers(object):
             self.torso.compliant = False
 
             ########################## Setting up services
-            self.srv_left_arm_execute = rospy.Service('left_arm/execute', ExecuteTrajectory, self._cb_execute)
-            self.srv_right_arm_execute = rospy.Service('right_arm/execute', ExecuteTrajectory, self._cb_execute)
-
-            self.srv_robot_execute = rospy.Service('full_robot/execute',
-                                                   ExecuteTrajectory,
-                                                   self._cb_execute)
+            self.srv_execute = rospy.Service('execute', ExecuteTrajectory, self._cb_execute)
+            self.srv_reach = rospy.Service('reach', ReachTarget, self._cb_reach)
 
             self.srv_left_arm_set_compliant = rospy.Service('left_arm/set_compliant',
                                                             SetCompliant,
@@ -141,6 +135,12 @@ class TorsoControllers(object):
                 m.compliant = request.compliant
         return SetCompliantResponse()
 
+    def _cb_reach(self, request):
+        target = dict(zip(request.target.name, request.target.position))
+        with self.robot_lock:
+            rospy.loginfo("Reaching non-blocking target...")
+            self.torso.goto_position(target, request.duration.to_sec())
+        return ReachTargetResponse()
 
 if __name__ == '__main__':
     rospy.init_node("poppy_torso_controllers")
