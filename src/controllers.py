@@ -124,7 +124,8 @@ class TorsoControllers(object):
 
                 self.torso.goto_position(dict(zip(trajectory.joint_names, point.positions)),
                                          self.params['time_margin'] + duration)  # Time margin trick to smooth trajectory
-                rospy.sleep(duration - 0.001)
+                sleep = max(0, duration - 0.00)
+                rospy.sleep(sleep)
                 time = time_from_start
             rospy.loginfo("Trajectory ended!")
 
