@@ -78,7 +78,6 @@ class TorsoControllers(object):
                 self.publish_rate.sleep()
         finally:
             if self.torso is not None:
-                self.torso.compliant = True
                 self.torso.close()
 
     @staticmethod
