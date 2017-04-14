@@ -110,23 +110,27 @@ class TorsoControllers(object):
         with self.robot_lock:
             rospy.loginfo("Executing Torso trajectory with {} points...".format(len(trajectory.points)))
             time = 0.
-            for point_id, point in enumerate(trajectory.points):
-                if rospy.is_shutdown():
-                    break
+            try:
+                for point_id, point in enumerate(trajectory.points):
+                    if rospy.is_shutdown():
+                        break
 
-                time_from_start = point.time_from_start.to_sec()
-                duration = time_from_start - time
+                    time_from_start = point.time_from_start.to_sec()
+                    duration = time_from_start - time
 
-                if duration < 0.:
-                    rospy.logwarn("Skipping invalid point {}/{} with incoherent time_from_start", point_id + 1, len(trajectory.points))
-                    continue
+                    if duration < 0.:
+                        rospy.logwarn("Skipping invalid point {}/{} with incoherent time_from_start", point_id + 1, len(trajectory.points))
+                        continue
 
-                self.torso.goto_position(dict(zip(trajectory.joint_names, point.positions)),
-                                         self.params['time_margin'] + duration)  # Time margin trick to smooth trajectory
-                sleep = max(0, duration - 0.00)
-                rospy.sleep(sleep)
-                time = time_from_start
-            rospy.loginfo("Trajectory ended!")
+                    self.torso.goto_position(dict(zip(trajectory.joint_names, point.positions)),
+                                             self.params['time_margin'] + duration)  # Time margin trick to smooth trajectory
+                    sleep = max(0, duration - 0.00)
+                    rospy.sleep(sleep)
+                    time = time_from_start
+            except rospy.exceptions.ROSInterruptException:
+                rospy.logwarn("Trajectory aborted!")
+            else:
+                rospy.loginfo("Trajectory ended!")
 
     def _cb_set_compliant(self, request, arm):
         rospy.loginfo("{} now {}".format(self.robot_name, 'compliant' if request.compliant else 'rigid'))
