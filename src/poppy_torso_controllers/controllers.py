@@ -5,8 +5,10 @@ from threading import Thread, RLock
 import json
 import rospy
 
+from poppy_torso_controllers.idle import LeftUpperBodyIdleMotion, RightUpperBodyIdleMotion, HeadIdleMotion
 from pypot.creatures import PoppyTorso
-from poppy_msgs.srv import ExecuteTrajectory, SetCompliant, ExecuteTrajectoryResponse, SetCompliantResponse, ReachTarget, ReachTargetResponse
+from poppy_msgs.srv import ExecuteTrajectory, SetCompliant, ExecuteTrajectoryResponse, SetCompliantResponse,\
+    ReachTarget, ReachTargetResponse, SetTorqueMax, SetTorqueMaxResponse, SetIdleMotion, SetIdleMotionResponse
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 
@@ -32,9 +34,18 @@ class TorsoControllers(object):
         # Services
         self.srv_execute = None
         self.srv_reach = None
+        self.srv_set_torque = None
         self.srv_left_arm_set_compliant = None
         self.srv_right_arm_set_compliant = None
         self.srv_robot_set_compliant = None
+        self.srv_set_head_idle = None
+        self.srv_set_left_idle = None
+        self.srv_set_right_idle = None
+
+        # Behaviors
+        self.right_idle = None
+        self.left_idle = None
+        self.head_idle = None
 
         # Protected resources
         self.torso = None
@@ -51,9 +62,15 @@ class TorsoControllers(object):
         else:
             self.torso.compliant = False
 
+            # Behaviors
+            self.right_idle = RightUpperBodyIdleMotion(self.torso, 15)
+            self.left_idle = LeftUpperBodyIdleMotion(self.torso, 15)
+            self.head_idle = HeadIdleMotion(self.torso, 15)
+
             ########################## Setting up services
             self.srv_execute = rospy.Service('execute', ExecuteTrajectory, self._cb_execute)
             self.srv_reach = rospy.Service('reach', ReachTarget, self._cb_reach)
+            self.srv_set_torque = rospy.Service('set_torque_max', SetTorqueMax, self._cb_set_torque)
 
             self.srv_left_arm_set_compliant = rospy.Service('left_arm/set_compliant',
                                                             SetCompliant,
@@ -66,6 +83,18 @@ class TorsoControllers(object):
             self.srv_robot_set_compliant = rospy.Service('full_robot/set_compliant',
                                                          SetCompliant,
                                                          lambda req: self._cb_set_compliant(req, self.torso.motors))
+
+            self.srv_set_head_idle = rospy.Service('head/set_idle_motion',
+                                                   SetIdleMotion,
+                                                   lambda req: self._cb_set_idle(req, self.head_idle))
+
+            self.srv_set_left_idle = rospy.Service('left_arm/set_idle_motion',
+                                                   SetIdleMotion,
+                                                   lambda req: self._cb_set_idle(req, self.left_idle))
+
+            self.srv_set_right_idle = rospy.Service('right_arm/set_idle_motion',
+                                                    SetIdleMotion,
+                                                    lambda req: self._cb_set_idle(req, self.right_idle))
 
             rospy.loginfo("{} controllers are up!".format(self.robot_name))
 
@@ -99,6 +128,21 @@ class TorsoControllers(object):
         js.effort = [m.present_load for m in arm]
         publisher.publish(js)
 
+    def _cb_set_torque(self, request):
+        for motor_index, motor_name in enumerate(request.joint_names):
+            try:
+                value = request.max_torques[motor_index]
+            except IndexError:
+                rospy.logerr("Cannot set maximum torque for {}: incorrect number of values within message".format(motor_name))
+            else:
+                try:
+                    motor = getattr(self.torso, motor_name)
+                except AttributeError:
+                    rospy.logerr("No motor named {}".format(motor_name))
+                else:
+                    motor.torque_limit = value
+        return SetTorqueMaxResponse()
+
     def _cb_execute(self, request):
         # TODO Action server
         thread = Thread(target=self.execute, args=[request.trajectory])
@@ -128,9 +172,23 @@ class TorsoControllers(object):
                     rospy.sleep(sleep)
                     time = time_from_start
             except rospy.exceptions.ROSInterruptException:
-                rospy.logwarn("Trajectory aborted!")
+                pass
             else:
                 rospy.loginfo("Trajectory ended!")
+
+    @staticmethod
+    def _cb_set_idle(request, idle_motion):
+        if request.command == request.COMMAND_START:
+            idle_motion.start()
+        elif request.command == request.COMMAND_STOP:
+            idle_motion.stop()
+        elif request.command == request.COMMAND_PAUSE:
+            idle_motion.pause()
+        elif request.command == request.COMMAND_RESUME:
+            idle_motion.resume()
+        else:
+            rospy.logwarn("Unknown command {}, please check the srv format".format(request.command))
+        return SetIdleMotionResponse()
 
     def _cb_set_compliant(self, request, arm):
         rospy.loginfo("{} now {}".format(self.robot_name, 'compliant' if request.compliant else 'rigid'))
