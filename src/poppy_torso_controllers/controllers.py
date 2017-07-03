@@ -57,8 +57,7 @@ class TorsoControllers(object):
         try:
             self.torso = PoppyTorso(use_http=True, simulator=simulator, scene="keep-existing", port=port)
         except IOError as e:
-            rospy.logerr("{} failed to init: {}".format(self.robot_name, e))
-            return None
+            raise IOError("{} failed to init: {}".format(self.robot_name, e))
         else:
             self.torso.compliant = False
 
