@@ -54,6 +54,7 @@ class TorsoControllers(object):
     def run(self, simulator=None):
         rospy.loginfo("Controller is connecting to {}...".format(self.robot_name))
         port = rospy.get_param('vrep/port', 19997)
+        self.start_idle = rospy.get_param('start_idle_motions', False)
         try:
             self.torso = PoppyTorso(use_http=True, simulator=simulator, scene="keep-existing", port=port)
         except IOError as e:
@@ -62,9 +63,9 @@ class TorsoControllers(object):
             self.torso.compliant = False
 
             # Behaviors
-            self.right_idle = RightUpperBodyIdleMotion(self.torso, 15)
-            self.left_idle = LeftUpperBodyIdleMotion(self.torso, 15)
-            self.head_idle = HeadIdleMotion(self.torso, 15)
+            self.right_idle = RightUpperBodyIdleMotion(self.torso, 15) if self.start_idle else None
+            self.left_idle = LeftUpperBodyIdleMotion(self.torso, 15) if self.start_idle else None
+            self.head_idle = HeadIdleMotion(self.torso, 15) if self.start_idle else None
 
             ########################## Setting up services
             self.srv_execute = rospy.Service('execute', ExecuteTrajectory, self._cb_execute)
@@ -83,17 +84,17 @@ class TorsoControllers(object):
                                                          SetCompliant,
                                                          lambda req: self._cb_set_compliant(req, self.torso.motors))
 
-            self.srv_set_head_idle = rospy.Service('head/set_idle_motion',
-                                                   SetIdleMotion,
-                                                   lambda req: self._cb_set_idle(req, self.head_idle))
+            if self.start_idle:
+                self.srv_set_head_idle = rospy.Service('head/set_idle_motion',
+                                                       SetIdleMotion,
+                                                       lambda req: self._cb_set_idle(req, self.head_idle))
+                self.srv_set_left_idle = rospy.Service('left_arm/set_idle_motion',
+                                                       SetIdleMotion,
+                                                       lambda req: self._cb_set_idle(req, self.left_idle))
 
-            self.srv_set_left_idle = rospy.Service('left_arm/set_idle_motion',
-                                                   SetIdleMotion,
-                                                   lambda req: self._cb_set_idle(req, self.left_idle))
-
-            self.srv_set_right_idle = rospy.Service('right_arm/set_idle_motion',
-                                                    SetIdleMotion,
-                                                    lambda req: self._cb_set_idle(req, self.right_idle))
+                self.srv_set_right_idle = rospy.Service('right_arm/set_idle_motion',
+                                                        SetIdleMotion,
+                                                        lambda req: self._cb_set_idle(req, self.right_idle))
 
             rospy.loginfo("{} controllers are up!".format(self.robot_name))
 
